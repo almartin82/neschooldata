@@ -1,0 +1,27 @@
+# R files
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# Package documentation
+docs/
+inst/doc/
+doc/
+Meta/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# Test artifacts
+tests/testthat/_snaps/
+
+# Cache
+*.rds

@@ -1,0 +1,60 @@
+#' neschooldata: Fetch and Process Nebraska School Data
+#'
+#' Downloads and processes school data from the Nebraska Department of Education.
+#' Provides functions for fetching enrollment data from NDE's public data reports
+#' and transforming it into tidy format for analysis.
+#'
+#' @section Main functions:
+#' \describe{
+#'   \item{\code{\link{fetch_enr}}}{Fetch enrollment data for a school year}
+#'   \item{\code{\link{fetch_enr_multi}}}{Fetch enrollment data for multiple years}
+#'   \item{\code{\link{tidy_enr}}}{Transform wide data to tidy (long) format}
+#'   \item{\code{\link{id_enr_aggs}}}{Add aggregation level flags}
+#'   \item{\code{\link{enr_grade_aggs}}}{Create grade-level aggregations}
+#'   \item{\code{\link{get_available_years}}}{Get list of available data years}
+#' }
+#'
+#' @section Cache functions:
+#' \describe{
+#'   \item{\code{\link{cache_status}}}{View cached data files}
+#'   \item{\code{\link{clear_cache}}}{Remove cached data files}
+#' }
+#'
+#' @section ID System:
+#' Nebraska uses a hierarchical ID system with county-based codes:
+#' \itemize{
+#'   \item District IDs: County-District format (e.g., "55-0001" = Lincoln Public Schools)
+#'   \item School IDs: County-District-School format (e.g., "55-0001-001")
+#'   \item County codes: 2 digits (01-93)
+#'   \item District codes: 4 digits
+#'   \item School codes: 3 digits
+#' }
+#'
+#' @section Data Sources:
+#' Data is sourced from Nebraska Department of Education's public reports:
+#' \itemize{
+#'   \item Data Reports: \url{https://www.education.ne.gov/dataservices/data-reports/}
+#'   \item Archives: \url{https://www.education.ne.gov/dataservices/data-reports/data-and-information-archives/}
+#' }
+#'
+#' @section Data Availability:
+#' \itemize{
+#'   \item Years: 2016-present (2015-16 school year onwards)
+#'   \item Aggregation levels: State, District, School (Campus)
+#'   \item Demographics: White, Black, Hispanic, Asian, Native American, Pacific Islander, Multiracial
+#'   \item Gender: Male, Female
+#'   \item Grade levels: PK, K, 01-12
+#' }
+#'
+#' @section Known Limitations:
+#' \itemize
+#'   \item No economically disadvantaged, LEP, or special education data in membership files
+#'   \item Pre-2016 data requires different file formats (not yet supported)
+#'   \item Some older years may have different URL patterns
+#' }
+#'
+#' @docType package
+#' @name neschooldata-package
+#' @aliases neschooldata
+#' @keywords internal
+"_PACKAGE"
