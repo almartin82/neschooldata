@@ -39,18 +39,23 @@
 #'
 #' @section Data Availability:
 #' \itemize{
-#'   \item Years: 2016-present (2015-16 school year onwards)
+#'   \item Years: 2003-present (2002-03 school year onwards)
 #'   \item Aggregation levels: State, District, School (Campus)
 #'   \item Demographics: White, Black, Hispanic, Asian, Native American, Pacific Islander, Multiracial
 #'   \item Gender: Male, Female
 #'   \item Grade levels: PK, K, 01-12
 #' }
 #'
+#' @section Historical Data Notes:
+#' \itemize{
+#'   \item For years 2003-2010: Pacific Islander is included in Asian, Multiracial not available
+#'   \item For years 2003-2005: Limited metadata (no county information)
+#' }
+#'
 #' @section Known Limitations:
-#' \itemize
+#' \itemize{
 #'   \item No economically disadvantaged, LEP, or special education data in membership files
-#'   \item Pre-2016 data requires different file formats (not yet supported)
-#'   \item Some older years may have different URL patterns
+#'   \item Pre-2003 data has different file formats (not yet supported)
 #' }
 #'
 #' @docType package

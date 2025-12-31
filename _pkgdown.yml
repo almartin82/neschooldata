@@ -42,6 +42,9 @@ reference:
 home:
   title: neschooldata
   description: Fetch and Process Nebraska School Data
+  links:
+    - text: "Part of the 50 State Schooldata Family"
+      href: https://github.com/almartin82/njschooldata
 
 authors:
   Al Martin:

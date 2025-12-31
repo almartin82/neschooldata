@@ -21,12 +21,16 @@ test_that("get_available_years returns valid range", {
   years <- get_available_years()
 
   # Should be a numeric vector
-
   expect_true(is.numeric(years))
 
-  # Should include at least 2016-2024
+  # Should include historical years from 2003-2024
+  expect_true(2003 %in% years)
+  expect_true(2010 %in% years)
   expect_true(2016 %in% years)
   expect_true(2024 %in% years)
+
+  # Should start at 2003 (earliest available)
+  expect_equal(min(years), 2003)
 
   # Should be consecutive
   expect_equal(years, seq(min(years), max(years)))
@@ -40,6 +44,7 @@ test_that("format_school_year formats correctly", {
 
 test_that("fetch_enr validates year parameter", {
   expect_error(fetch_enr(2000), "end_year must be between")
+  expect_error(fetch_enr(2002), "end_year must be between")  # 2003 is earliest
   expect_error(fetch_enr(2040), "end_year must be between")
 })
 
@@ -76,24 +81,43 @@ test_that("parse_school_code parses correctly", {
 })
 
 test_that("map_grade_code maps correctly", {
-  expect_equal(map_grade_code("PK"), "pk")
-  expect_equal(map_grade_code("KN"), "k")
-  expect_equal(map_grade_code("KG"), "k")
-  expect_equal(map_grade_code("01"), "01")
-  expect_equal(map_grade_code("12"), "12")
+  expect_equal(unname(map_grade_code("PK")), "pk")
+  expect_equal(unname(map_grade_code("KN")), "k")
+  expect_equal(unname(map_grade_code("KG")), "k")
+  expect_equal(unname(map_grade_code("01")), "01")
+  expect_equal(unname(map_grade_code("12")), "12")
 })
 
 test_that("build_nde_url_patterns returns valid URLs", {
-  urls <- build_nde_url_patterns(2024, "test.csv")
+  # Test modern year
+  urls_2024 <- build_nde_url_patterns(2024)
+  expect_true(length(urls_2024) >= 1)
+  expect_true(all(grepl("^https://", urls_2024)))
+  expect_true(all(grepl("education.ne.gov", urls_2024)))
 
-  # Should return multiple URLs
+  # Test legacy year
+  urls_2010 <- build_nde_url_patterns(2010)
+  expect_true(length(urls_2010) >= 1)
+  expect_true(all(grepl("^https://", urls_2010)))
 
-  expect_true(length(urls) > 1)
+  # Test oldest format year
+  urls_2005 <- build_nde_url_patterns(2005)
+  expect_true(length(urls_2005) >= 1)
+  expect_true(all(grepl("^https://", urls_2005)))
+})
 
-  # All should be valid URLs
-  expect_true(all(grepl("^https://", urls)))
-  expect_true(all(grepl("education.ne.gov", urls)))
-  expect_true(all(grepl("test.csv$", urls)))
+test_that("get_known_file_urls returns all years", {
+  known_urls <- get_known_file_urls()
+
+  # Should have entries for 2003-2026
+  expect_true("2003" %in% names(known_urls))
+  expect_true("2010" %in% names(known_urls))
+  expect_true("2024" %in% names(known_urls))
+  expect_true("2026" %in% names(known_urls))
+
+  # Each entry should be a character vector
+  expect_true(is.character(known_urls[["2024"]]))
+  expect_true(is.character(known_urls[["2010"]]))
 })
 
 # Integration tests (require network access)
@@ -131,12 +155,68 @@ test_that("fetch_enr works for older years", {
   skip_on_cran()
   skip_if_offline()
 
-  # Test an older year
+  # Test an older year (modern format)
   result <- fetch_enr(2021, tidy = FALSE, use_cache = FALSE)
 
   expect_true(is.data.frame(result))
   expect_true(nrow(result) > 0)
   expect_true("State" %in% result$type)
+})
+
+test_that("fetch_enr works for legacy format years (2003-2010)", {
+  skip_on_cran()
+  skip_if_offline()
+
+  # Test a legacy format year
+  result <- fetch_enr(2010, tidy = FALSE, use_cache = FALSE)
+
+  expect_true(is.data.frame(result))
+  expect_true(nrow(result) > 0)
+  expect_true("State" %in% result$type)
+  expect_true("District" %in% result$type)
+  expect_true("Campus" %in% result$type)
+
+  # Legacy format should have basic demographics
+  expect_true("white" %in% names(result))
+  expect_true("black" %in% names(result))
+  expect_true("hispanic" %in% names(result))
+  expect_true("asian" %in% names(result))  # Asian/Pacific Islander combined
+
+  # Pacific Islander and Multiracial columns should exist
+  # (values may be NA or 0 depending on the format era)
+  expect_true("pacific_islander" %in% names(result))
+  expect_true("multiracial" %in% names(result))
+
+  # For Campus-level records, check that Pacific Islander and Multiracial
+  # are either all NA or all 0 (not actual data)
+  campus_records <- result[result$type == "Campus", ]
+  pi_values <- campus_records$pacific_islander[!is.na(campus_records$pacific_islander)]
+  mu_values <- campus_records$multiracial[!is.na(campus_records$multiracial)]
+
+  # If there are non-NA values, they should all be 0
+  if (length(pi_values) > 0) {
+    expect_true(all(pi_values == 0))
+  }
+  if (length(mu_values) > 0) {
+    expect_true(all(mu_values == 0))
+  }
+})
+
+test_that("fetch_enr works for oldest format years (2003-2005)", {
+  skip_on_cran()
+  skip_if_offline()
+
+  # Test an oldest format year
+  result <- fetch_enr(2005, tidy = FALSE, use_cache = FALSE)
+
+  expect_true(is.data.frame(result))
+  expect_true(nrow(result) > 0)
+  expect_true("State" %in% result$type)
+
+  # Should have basic demographics
+  expect_true("white" %in% names(result))
+  expect_true("black" %in% names(result))
+  expect_true("row_total" %in% names(result))
 })
 
 test_that("tidy_enr produces correct long format", {

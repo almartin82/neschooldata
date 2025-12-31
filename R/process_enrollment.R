@@ -37,6 +37,10 @@ process_enr <- function(raw_data, end_year) {
 #' Process school-level enrollment data
 #'
 #' Aggregates grade-level rows into school totals and standardizes column names.
+#' Handles three different column formats based on the data year:
+#' - 2011+: Modern format with separate Pacific Islander and Multiracial
+#' - 2006-2010: Legacy format with combined Asian/Pacific Islander, no Multiracial
+#' - 2003-2005: Oldest format with minimal columns
 #'
 #' @param df Raw data frame from NDE
 #' @param end_year School year end
@@ -55,32 +59,115 @@ process_school_enr <- function(df, end_year) {
     NULL
   }
 
-  # Get column names
-  school_id_col <- find_col(c("CO_DIST_SCH"))
-  district_id_col <- find_col(c("CO_DIST"))
-  school_name_col <- find_col(c("SCHOOL_NAME"))
-  district_name_col <- find_col(c("DISTRICT_NAME"))
-  county_col <- find_col(c("COUNTY_NAME"))
-  grade_col <- find_col(c("GRADE_CODE"))
+  # Determine format era based on available columns
+  is_legacy_format <- !is.null(find_col(c("FWNH", "MWNH")))
+  has_codist <- !is.null(find_col(c("CoDist")))
+  has_datayears <- !is.null(find_col(c("DATAYEARS")))
 
-  # Demographic columns
-  f_wh_col <- find_col(c("F_WH"))
-  m_wh_col <- find_col(c("M_WH"))
-  f_bl_col <- find_col(c("FBL", "F_BL"))
-  m_bl_col <- find_col(c("M_BL"))
-  f_hi_col <- find_col(c("F_HI"))
-  m_hi_col <- find_col(c("M_HI"))
-  f_as_col <- find_col(c("F_AS"))
-  m_as_col <- find_col(c("M_AS"))
-  f_am_col <- find_col(c("F_AM"))
-  m_am_col <- find_col(c("M_AM"))
-  f_pi_col <- find_col(c("F_PI"))
-  m_pi_col <- find_col(c("M_PI"))
-  f_mu_col <- find_col(c("F_MU"))
-  m_mu_col <- find_col(c("M_MU"))
-  female_col <- find_col(c("FEMALE_TOTAL"))
-  male_col <- find_col(c("MALE_TOTAL"))
-  total_col <- find_col(c("TOTAL"))
+  # Get column names - handle different naming conventions across format eras
+  # There are several variations:
+  # 1. 2003-2004 (oldest): CoDist, DistName, CoDistSch, SchName, Grade
+  # 2. 2005-2010 (legacy with DATAYEARS): COUNTY/DISTRICT, DistrictName/DISTNAME, SchoolName
+  # 3. 2011+ (modern): CO_DIST, DISTRICT_NAME, CO_DIST_SCH, SCHOOL_NAME
+
+  if (has_codist) {
+    # Oldest format (2003-2004): has CoDist column
+    school_id_col <- find_col(c("CoDistSch"))
+    district_id_col <- find_col(c("CoDist"))
+    school_name_col <- find_col(c("SchName"))
+    district_name_col <- find_col(c("DistName"))
+    county_col <- NULL  # Not available
+    grade_col <- find_col(c("Grade"))
+  } else if (is_legacy_format && has_datayears) {
+    # Legacy format with DATAYEARS (2005-2010): separate COUNTY/DISTRICT columns
+    # Need to construct school/district IDs from separate columns
+    school_id_col <- NULL  # Will construct from COUNTY, DISTRICT, SCHOOL
+    district_id_col <- NULL  # Will construct from COUNTY, DISTRICT
+    school_name_col <- find_col(c("SchoolName", "SCHOOL_NAME"))
+    district_name_col <- find_col(c("DistrictName", "DISTNAME", "DISTRICT_NAME"))
+    county_col <- find_col(c("COUNTY_NAME"))
+    grade_col <- find_col(c("GRADE_CODE", "grade_code"))
+
+    # Construct district_id and campus_id from separate columns
+    county_code_col <- find_col(c("COUNTY"))
+    district_code_col <- find_col(c("DISTRICT"))
+    school_code_col <- find_col(c("SCHOOL"))
+
+    if (!is.null(county_code_col) && !is.null(district_code_col)) {
+      df$constructed_district_id <- paste0(
+        sprintf("%02d", as.integer(df[[county_code_col]])),
+        "-",
+        sprintf("%04d", as.integer(df[[district_code_col]]))
+      )
+      district_id_col <- "constructed_district_id"
+
+      if (!is.null(school_code_col)) {
+        df$constructed_school_id <- paste0(
+          df$constructed_district_id,
+          "-",
+          sprintf("%03d", as.integer(df[[school_code_col]]))
+        )
+        school_id_col <- "constructed_school_id"
+      }
+    }
+  } else if (is_legacy_format) {
+    # Other legacy format variations
+    school_id_col <- find_col(c("AGENCYID", "CoDistSch"))
+    district_id_col <- find_col(c("co-dist", "CO_DIST", "CoDist"))
+    school_name_col <- find_col(c("SchoolName", "SCHOOL_NAME", "SchName"))
+    district_name_col <- find_col(c("DISTNAME", "DISTRICT_NAME", "DistName", "DistrictName"))
+    county_col <- find_col(c("COUNTY_NAME"))
+    grade_col <- find_col(c("grade_code", "GRADE_CODE", "Grade"))
+  } else {
+    # 2011+ modern format
+    school_id_col <- find_col(c("CO_DIST_SCH", "AGENCYID"))
+    district_id_col <- find_col(c("CO_DIST"))
+    school_name_col <- find_col(c("SCHOOL_NAME"))
+    district_name_col <- find_col(c("DISTRICT_NAME"))
+    county_col <- find_col(c("COUNTY_NAME"))
+    grade_col <- find_col(c("GRADE_CODE"))
+  }
+
+  # Demographic columns - handle both modern and legacy formats
+  if (is_legacy_format || has_codist) {
+    # Pre-2011 format: FWNH/MWNH, FBNH/MBNH, FH/MH, FAPI/MAPI, FAIA/MAIA
+    f_wh_col <- find_col(c("FWNH"))
+    m_wh_col <- find_col(c("MWNH"))
+    f_bl_col <- find_col(c("FBNH"))
+    m_bl_col <- find_col(c("MBNH"))
+    f_hi_col <- find_col(c("FH"))
+    m_hi_col <- find_col(c("MH"))
+    f_as_col <- find_col(c("FAPI"))  # Asian/Pacific Islander combined
+    m_as_col <- find_col(c("MAPI"))
+    f_am_col <- find_col(c("FAIA"))
+    m_am_col <- find_col(c("MAIA"))
+    f_pi_col <- NULL  # Not available in legacy format
+    m_pi_col <- NULL
+    f_mu_col <- NULL  # Not available in legacy format
+    m_mu_col <- NULL
+    female_col <- find_col(c("Ftotal", "FEMALE"))
+    male_col <- find_col(c("Mtotal", "MALE"))
+    total_col <- find_col(c("TOTAL"))
+  } else {
+    # 2011+ format
+    f_wh_col <- find_col(c("F_WH"))
+    m_wh_col <- find_col(c("M_WH"))
+    f_bl_col <- find_col(c("FBL", "F_BL"))
+    m_bl_col <- find_col(c("M_BL"))
+    f_hi_col <- find_col(c("F_HI"))
+    m_hi_col <- find_col(c("M_HI"))
+    f_as_col <- find_col(c("F_AS"))
+    m_as_col <- find_col(c("M_AS"))
+    f_am_col <- find_col(c("F_AM"))
+    m_am_col <- find_col(c("M_AM"))
+    f_pi_col <- find_col(c("F_PI"))
+    m_pi_col <- find_col(c("M_PI"))
+    f_mu_col <- find_col(c("F_MU"))
+    m_mu_col <- find_col(c("M_MU"))
+    female_col <- find_col(c("FEMALE_TOTAL", "Female_total"))
+    male_col <- find_col(c("MALE_TOTAL", "Male_total"))
+    total_col <- find_col(c("TOTAL", "Total"))
+  }
 
   # Convert demographics to numeric and combine by race
   df_work <- df
@@ -88,86 +175,129 @@ process_school_enr <- function(df, end_year) {
   # Combine male and female counts for each race
   if (!is.null(f_wh_col) && !is.null(m_wh_col)) {
     df_work$white <- safe_numeric(df[[f_wh_col]]) + safe_numeric(df[[m_wh_col]])
+  } else {
+    df_work$white <- NA_real_
   }
   if (!is.null(f_bl_col) && !is.null(m_bl_col)) {
     df_work$black <- safe_numeric(df[[f_bl_col]]) + safe_numeric(df[[m_bl_col]])
+  } else {
+    df_work$black <- NA_real_
   }
   if (!is.null(f_hi_col) && !is.null(m_hi_col)) {
     df_work$hispanic <- safe_numeric(df[[f_hi_col]]) + safe_numeric(df[[m_hi_col]])
+  } else {
+    df_work$hispanic <- NA_real_
   }
   if (!is.null(f_as_col) && !is.null(m_as_col)) {
+    # Note: For legacy format, this is Asian/Pacific Islander combined
     df_work$asian <- safe_numeric(df[[f_as_col]]) + safe_numeric(df[[m_as_col]])
+  } else {
+    df_work$asian <- NA_real_
   }
   if (!is.null(f_am_col) && !is.null(m_am_col)) {
     df_work$native_american <- safe_numeric(df[[f_am_col]]) + safe_numeric(df[[m_am_col]])
+  } else {
+    df_work$native_american <- NA_real_
   }
   if (!is.null(f_pi_col) && !is.null(m_pi_col)) {
     df_work$pacific_islander <- safe_numeric(df[[f_pi_col]]) + safe_numeric(df[[m_pi_col]])
+  } else {
+    # For legacy format, Pacific Islander is included in Asian
+    df_work$pacific_islander <- NA_real_
   }
   if (!is.null(f_mu_col) && !is.null(m_mu_col)) {
     df_work$multiracial <- safe_numeric(df[[f_mu_col]]) + safe_numeric(df[[m_mu_col]])
+  } else {
+    # Multiracial not available in legacy format
+    df_work$multiracial <- NA_real_
   }
 
   # Gender totals
   if (!is.null(female_col)) {
     df_work$female <- safe_numeric(df[[female_col]])
+  } else {
+    df_work$female <- NA_real_
   }
   if (!is.null(male_col)) {
     df_work$male <- safe_numeric(df[[male_col]])
+  } else {
+    df_work$male <- NA_real_
   }
   if (!is.null(total_col)) {
     df_work$total <- safe_numeric(df[[total_col]])
+  } else {
+    df_work$total <- NA_real_
   }
 
   # Add identifiers
   if (!is.null(school_id_col)) {
     df_work$campus_id <- trimws(df[[school_id_col]])
+  } else {
+    df_work$campus_id <- NA_character_
   }
   if (!is.null(district_id_col)) {
     df_work$district_id <- trimws(df[[district_id_col]])
+  } else {
+    df_work$district_id <- NA_character_
   }
   if (!is.null(school_name_col)) {
     df_work$campus_name <- trimws(df[[school_name_col]])
+  } else {
+    df_work$campus_name <- NA_character_
   }
   if (!is.null(district_name_col)) {
     df_work$district_name <- trimws(df[[district_name_col]])
+  } else {
+    df_work$district_name <- NA_character_
   }
   if (!is.null(county_col)) {
     df_work$county <- trimws(df[[county_col]])
+  } else {
+    df_work$county <- NA_character_
   }
   if (!is.null(grade_col)) {
     df_work$grade_code <- trimws(df[[grade_col]])
+  } else {
+    df_work$grade_code <- NA_character_
   }
 
   # Map NDE grade codes to standard format
   df_work$grade_level <- map_grade_code(df_work$grade_code)
+
+  # Helper function: sum that returns NA if all values are NA
+  sum_or_na <- function(x) {
+    if (all(is.na(x))) return(NA_real_)
+    sum(x, na.rm = TRUE)
+  }
 
   # Create grade-level columns for each school
   # First, aggregate to school-grade level (in case of duplicates)
   school_grade <- df_work %>%
     dplyr::group_by(campus_id, district_id, campus_name, district_name, county, grade_level) %>%
     dplyr::summarize(
-      white = sum(white, na.rm = TRUE),
-      black = sum(black, na.rm = TRUE),
-      hispanic = sum(hispanic, na.rm = TRUE),
-      asian = sum(asian, na.rm = TRUE),
-      native_american = sum(native_american, na.rm = TRUE),
-      pacific_islander = sum(pacific_islander, na.rm = TRUE),
-      multiracial = sum(multiracial, na.rm = TRUE),
-      female = sum(female, na.rm = TRUE),
-      male = sum(male, na.rm = TRUE),
-      total = sum(total, na.rm = TRUE),
+      white = sum_or_na(white),
+      black = sum_or_na(black),
+      hispanic = sum_or_na(hispanic),
+      asian = sum_or_na(asian),
+      native_american = sum_or_na(native_american),
+      pacific_islander = sum_or_na(pacific_islander),
+      multiracial = sum_or_na(multiracial),
+      female = sum_or_na(female),
+      male = sum_or_na(male),
+      total = sum_or_na(total),
       .groups = "drop"
     )
 
   # Pivot grade counts to wide format
+  # Ensure total is numeric for pivot_wider
   grade_counts <- school_grade %>%
+    dplyr::mutate(total = as.numeric(total)) %>%
     dplyr::select(campus_id, grade_level, total) %>%
     tidyr::pivot_wider(
       names_from = grade_level,
       values_from = total,
       names_prefix = "grade_",
-      values_fill = 0
+      values_fill = list(total = 0)
     )
 
   # Aggregate demographics to school level (sum across grades)
@@ -175,15 +305,15 @@ process_school_enr <- function(df, end_year) {
     dplyr::group_by(campus_id, district_id, campus_name, district_name, county) %>%
     dplyr::summarize(
       row_total = sum(total, na.rm = TRUE),
-      white = sum(white, na.rm = TRUE),
-      black = sum(black, na.rm = TRUE),
-      hispanic = sum(hispanic, na.rm = TRUE),
-      asian = sum(asian, na.rm = TRUE),
-      native_american = sum(native_american, na.rm = TRUE),
-      pacific_islander = sum(pacific_islander, na.rm = TRUE),
-      multiracial = sum(multiracial, na.rm = TRUE),
-      female = sum(female, na.rm = TRUE),
-      male = sum(male, na.rm = TRUE),
+      white = sum_or_na(white),
+      black = sum_or_na(black),
+      hispanic = sum_or_na(hispanic),
+      asian = sum_or_na(asian),
+      native_american = sum_or_na(native_american),
+      pacific_islander = sum_or_na(pacific_islander),
+      multiracial = sum_or_na(multiracial),
+      female = sum_or_na(female),
+      male = sum_or_na(male),
       .groups = "drop"
     )
 

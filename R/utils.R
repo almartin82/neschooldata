@@ -41,14 +41,20 @@ safe_numeric <- function(x) {
 #' Get available years for Nebraska enrollment data
 #'
 #' Returns a vector of school year ends for which enrollment data is available.
-#' Nebraska provides data from 2016-present through direct CSV downloads.
+#' Nebraska provides historical enrollment data from 2002-03 through present:
+#' - 2018-present: CSV files (MembershipByGradeRaceAndGender)
+#' - 2011-2017: TXT files with current column format
+#' - 2003-2010: TXT files with legacy column format (pre-2010 race categories)
+#'
+#' Note: Years 2001-2002 (end_year 2002) and earlier have different data structures
+#' and are not currently supported.
 #'
 #' @return Integer vector of available school year ends
 #' @export
 #' @examples
 #' get_available_years()
 get_available_years <- function() {
-  # Nebraska has CSV data from 2015-16 school year to present
+  # Nebraska has data from 2002-03 school year to present
   # The current year updates in December
   current_year <- as.integer(format(Sys.Date(), "%Y"))
   current_month <- as.integer(format(Sys.Date(), "%m"))
@@ -64,7 +70,8 @@ get_available_years <- function() {
   }
 
   # Return range from earliest available to most recent
-  2016:max_year
+  # 2003 = 2002-03 school year (earliest with consistent format)
+  2003:max_year
 }
 
 

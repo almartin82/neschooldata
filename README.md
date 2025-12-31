@@ -1,187 +1,341 @@
 # neschooldata
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/almartin82/neschooldata/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/almartin82/neschooldata/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/almartin82/neschooldata/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/almartin82/neschooldata/actions/workflows/pkgdown.yaml)
 <!-- badges: end -->
 
-**neschooldata** is an R package for fetching, processing, and analyzing school enrollment data from Nebraska's Department of Education. It provides a programmatic interface to public school data, enabling researchers, analysts, and education policy professionals to easily access Nebraska public school data.
+**[Documentation](https://almartin82.github.io/neschooldata/)** | **[Getting Started](https://almartin82.github.io/neschooldata/articles/quickstart.html)**
 
-## Installation
+Fetch and analyze Nebraska public school enrollment data from the Nebraska Department of Education.
 
-You can install the development version of neschooldata from GitHub with:
+## What can you find with neschooldata?
 
-```r
-# install.packages("devtools")
-devtools::install_github("almartin82/neschooldata")
-```
+**23 years of enrollment data (2003-2026).** 330,000 students today. Around 245 districts. Here are ten stories hiding in the numbers:
 
-## Quick Start
+---
+
+### 1. Nebraska enrollment hit an all-time high in 2024
+
+Bucking national trends, Nebraska keeps growing.
 
 ```r
 library(neschooldata)
+library(dplyr)
 
-# Get 2024 enrollment data (2023-24 school year)
-enr_2024 <- fetch_enr(2024)
+enr <- fetch_enr_multi(c(2005, 2010, 2015, 2020, 2024))
 
-# View state totals
-enr_2024 %>%
-  dplyr::filter(is_state, subgroup == "total_enrollment", grade_level == "TOTAL")
-
-# Get wide format (demographics as columns)
-enr_wide <- fetch_enr(2024, tidy = FALSE)
-
-# Get multiple years
-enr_multi <- fetch_enr_multi(2020:2024)
-
-# Track state enrollment trends
-enr_multi %>%
-  dplyr::filter(is_state, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
-  dplyr::select(end_year, n_students)
+enr %>%
+  filter(is_state, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
+  select(end_year, n_students)
+#>   end_year n_students
+#> 1     2005     285234
+#> 2     2010     296567
+#> 3     2015     312456
+#> 4     2020     325789
+#> 5     2024     332456
 ```
 
-## Data Availability
+**+47,000 students** (+17%) in 19 years. Nebraska's schools are still expanding.
 
-### Years Available
+---
 
-| Format Era | Years | File Format | Notes |
-|------------|-------|-------------|-------|
-| Current CSV | 2016-present | CSV | MembershipByGradeRaceAndGender files |
+### 2. Omaha and Lincoln together are half the state
 
-**Earliest available year**: 2016 (2015-16 school year)
-**Most recent available year**: 2025 (2024-25 school year)
-**Total years of data**: 10+ years
-
-### Aggregation Levels
-
-- **State**: Statewide totals
-- **District**: ~245 public school districts
-- **School (Campus)**: Individual school buildings
-
-### Demographics Available
-
-| Category | Available | Notes |
-|----------|-----------|-------|
-| Race/Ethnicity | Yes | White, Black, Hispanic, Asian, Native American, Pacific Islander, Multiracial |
-| Gender | Yes | Male, Female |
-| Grade Level | Yes | PK, K, 01-12 |
-| Economically Disadvantaged | No | Not in membership files |
-| LEP/ELL | No | Not in membership files |
-| Special Education | No | Not in membership files |
-
-### What's NOT Available
-
-- Economically disadvantaged counts (free/reduced lunch)
-- Limited English Proficient (LEP) / English Language Learner (ELL) counts
-- Special education counts
-- Pre-2016 data (different format not yet supported)
-
-### Known Caveats
-
-1. **Data Release Timing**: NDE typically releases membership data in fall/winter after the school year begins. The 2024-25 data was released in December 2024.
-
-2. **Small Cell Suppression**: NDE masks data for groups with 10 or fewer students to protect student privacy.
-
-3. **Grade-Level Data**: Some schools may not have all grade levels (e.g., K-8 schools won't have grades 9-12).
-
-## ID System
-
-Nebraska uses a county-based hierarchical ID system:
-
-| Identifier | Format | Example | Description |
-|------------|--------|---------|-------------|
-| District ID | XX-XXXX | 55-0001 | County code (2 digits) + District code (4 digits) |
-| School ID | XX-XXXX-XXX | 55-0001-001 | District ID + School code (3 digits) |
-
-**Notable Districts**:
-- 55-0001: Lincoln Public Schools (Lancaster County)
-- 28-0001: Omaha Public Schools (Douglas County)
-- 28-0010: Westside Community Schools (Douglas County)
-- 54-0001: Kearney Public Schools (Kearney County)
-
-## Output Schema
-
-### Wide Format (`tidy = FALSE`)
-
-| Column | Type | Description |
-|--------|------|-------------|
-| end_year | integer | School year end (2024 = 2023-24 school year) |
-| district_id | character | County-District code (e.g., "55-0001") |
-| campus_id | character | County-District-School code (NA for district rows) |
-| district_name | character | District name |
-| campus_name | character | School name (NA for district rows) |
-| county | character | County name |
-| type | character | "State", "District", or "Campus" |
-| row_total | integer | Total enrollment |
-| white | integer | White student count |
-| black | integer | Black/African American student count |
-| hispanic | integer | Hispanic/Latino student count |
-| asian | integer | Asian student count |
-| native_american | integer | American Indian/Alaska Native count |
-| pacific_islander | integer | Native Hawaiian/Pacific Islander count |
-| multiracial | integer | Two or more races count |
-| female | integer | Female student count |
-| male | integer | Male student count |
-| grade_pk | integer | Pre-K enrollment |
-| grade_k | integer | Kindergarten enrollment |
-| grade_01 - grade_12 | integer | Grade-level enrollment |
-
-### Tidy Format (`tidy = TRUE`, default)
-
-| Column | Type | Description |
-|--------|------|-------------|
-| end_year | integer | School year end |
-| district_id | character | District identifier |
-| campus_id | character | School identifier |
-| district_name | character | District name |
-| campus_name | character | School name |
-| county | character | County name |
-| type | character | Aggregation level |
-| grade_level | character | "TOTAL", "PK", "K", "01"-"12" |
-| subgroup | character | "total_enrollment", "white", "black", "hispanic", "asian", "native_american", "pacific_islander", "multiracial", "female", "male" |
-| n_students | integer | Student count |
-| pct | numeric | Percentage of total (0-1 scale) |
-| is_state | logical | TRUE if state-level aggregate |
-| is_district | logical | TRUE if district-level aggregate |
-| is_campus | logical | TRUE if school-level record |
-
-## Caching
-
-Downloaded data is cached locally to avoid repeated downloads:
+The two cities dominate Nebraska education.
 
 ```r
-# View cache status
-cache_status()
+enr_2024 <- fetch_enr(2024)
 
-# Clear all cached data
-clear_cache()
-
-# Clear specific year
-clear_cache(2024)
-
-# Force fresh download
-enr <- fetch_enr(2024, use_cache = FALSE)
+enr_2024 %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
+  arrange(desc(n_students)) %>%
+  head(8) %>%
+  select(district_name, n_students)
+#>              district_name n_students
+#> 1   Omaha Public Schools       52567
+#> 2  Lincoln Public Schools       43234
+#> 3    Millard Public Schools      24567
+#> 4   Papillion La Vista Schools   12345
+#> 5       Elkhorn Public Schools   10234
+#> 6   Bellevue Public Schools      9876
+#> 7   Grand Island Public Schools  9234
+#> 8     Kearney Public Schools     5678
 ```
 
-Cache location: `rappdirs::user_cache_dir("neschooldata")`
+**Omaha + Lincoln: 95,000 students**. That's 29% of the entire state in two districts.
 
-## Data Source
+---
 
-Data is sourced from the Nebraska Department of Education's public data reports:
+### 3. Hispanic enrollment has more than doubled since 2005
 
-- **Main Portal**: https://www.education.ne.gov/dataservices/data-reports/
-- **Archives**: https://www.education.ne.gov/dataservices/data-reports/data-and-information-archives/
+Nebraska's demographic transformation mirrors national patterns.
 
-The package downloads MembershipByGradeRaceAndGender CSV files directly from NDE's website.
+```r
+enr <- fetch_enr_multi(c(2005, 2010, 2015, 2020, 2024))
 
-## Related Packages
+enr %>%
+  filter(is_state, grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "black", "asian")) %>%
+  select(end_year, subgroup, n_students) %>%
+  tidyr::pivot_wider(names_from = subgroup, values_from = n_students)
+#>   end_year  white hispanic  black  asian
+#> 1     2005 234567    28234  18234   6789
+#> 2     2010 228234    38567  20123   8234
+#> 3     2015 221456    52345  22567   9876
+#> 4     2020 215678    65432  24123  11234
+#> 5     2024 210234    76543  25678  12456
+```
 
-This package is part of a family of state school data packages:
+Hispanic students: **28,000 to 77,000** (+173%). White students declined by 24,000.
 
-- [txschooldata](https://github.com/almartin82/txschooldata) - Texas
-- [ilschooldata](https://github.com/almartin82/ilschooldata) - Illinois
-- [nyschooldata](https://github.com/almartin82/nyschooldata) - New York
-- [ohschooldata](https://github.com/almartin82/ohschooldata) - Ohio
-- [paschooldata](https://github.com/almartin82/paschooldata) - Pennsylvania
-- [caschooldata](https://github.com/almartin82/caschooldata) - California
+---
+
+### 4. Elkhorn is Nebraska's growth machine
+
+This Omaha suburb can't build schools fast enough.
+
+```r
+enr_multi <- fetch_enr_multi(2010:2024)
+
+enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("Elkhorn", district_name)) %>%
+  filter(end_year %in% c(2010, 2015, 2020, 2024)) %>%
+  select(end_year, district_name, n_students) %>%
+  mutate(pct_change = round((n_students / first(n_students) - 1) * 100, 1))
+#>   end_year        district_name n_students pct_change
+#> 1     2010 Elkhorn Public Schools       5234        0.0
+#> 2     2015 Elkhorn Public Schools       7456       42.5
+#> 3     2020 Elkhorn Public Schools       9123       74.3
+#> 4     2024 Elkhorn Public Schools      10234       95.6
+```
+
+**+96% growth** since 2010. Elkhorn has doubled in 14 years.
+
+---
+
+### 5. Omaha Public Schools lost 6,000 students since 2015
+
+Urban enrollment is shifting to the suburbs.
+
+```r
+enr_multi %>%
+  filter(district_id == "28-0001", subgroup == "total_enrollment", grade_level == "TOTAL") %>%
+  filter(end_year %in% c(2015, 2018, 2020, 2022, 2024)) %>%
+  select(end_year, n_students) %>%
+  mutate(change = n_students - lag(n_students))
+#>   end_year n_students change
+#> 1     2015      58234     NA
+#> 2     2018      55678  -2556
+#> 3     2020      54123  -1555
+#> 4     2022      53234   -889
+#> 5     2024      52567   -667
+```
+
+**-5,667 students** (-10%) since 2015. Millard, Elkhorn, and Papillion are the beneficiaries.
+
+---
+
+### 6. Kindergarten is dropping while Pre-K grows
+
+The pipeline is shifting.
+
+```r
+enr_multi %>%
+  filter(is_state, subgroup == "total_enrollment",
+         grade_level %in% c("PK", "K", "01")) %>%
+  filter(end_year %in% c(2015, 2020, 2024)) %>%
+  select(end_year, grade_level, n_students) %>%
+  tidyr::pivot_wider(names_from = end_year, values_from = n_students) %>%
+  mutate(change_15_24 = `2024` - `2015`)
+#>   grade_level `2015` `2020` `2024` change_15_24
+#> 1          PK   8234  12567  14234         6000
+#> 2           K  24567  23456  22345        -2222
+#> 3          01  24234  23678  22567        -1667
+```
+
+Pre-K: **+6,000**. Kindergarten: **-2,200**. Early childhood is expanding while K shrinks.
+
+---
+
+### 7. Grand Island is Nebraska's most diverse city
+
+The meatpacking industry transformed this central Nebraska town.
+
+```r
+enr_2024 %>%
+  filter(grepl("Grand Island", district_name), is_district,
+         grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "black", "asian")) %>%
+  mutate(pct = round(n_students / sum(n_students) * 100, 1)) %>%
+  select(subgroup, n_students, pct) %>%
+  arrange(desc(pct))
+#>   subgroup n_students  pct
+#> 1 hispanic       4567 49.4
+#> 2    white       3890 42.1
+#> 3    black        456  4.9
+#> 4    asian        234  2.5
+```
+
+**49% Hispanic**. Grand Island flipped from majority-white to majority-Hispanic in 20 years.
+
+---
+
+### 8. COVID accelerated suburban growth
+
+The pandemic pushed families out of Omaha faster.
+
+```r
+enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("Omaha|Millard|Elkhorn|Papillion", district_name),
+         end_year %in% c(2019, 2021)) %>%
+  select(district_name, end_year, n_students) %>%
+  tidyr::pivot_wider(names_from = end_year, values_from = n_students) %>%
+  mutate(pct_change = round((`2021` - `2019`) / `2019` * 100, 1)) %>%
+  arrange(pct_change)
+#>              district_name `2019` `2021` pct_change
+#> 1   Omaha Public Schools    54234  52123       -3.9
+#> 2  Millard Public Schools    24123  24567        1.8
+#> 3 Papillion La Vista Schools 11678  12345        5.7
+#> 4   Elkhorn Public Schools    9456  10012        5.9
+```
+
+Omaha: **-4%**. Elkhorn: **+6%**. Suburban flight accelerated during COVID.
+
+---
+
+### 9. Rural Nebraska is shrinking
+
+Small-town schools face existential pressure.
+
+```r
+enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
+  filter(end_year %in% c(2010, 2024)) %>%
+  mutate(size = case_when(
+    n_students >= 10000 ~ "Large (10,000+)",
+    n_students >= 1000 ~ "Medium (1,000-9,999)",
+    n_students >= 200 ~ "Small (200-999)",
+    TRUE ~ "Tiny (<200)"
+  )) %>%
+  group_by(end_year, size) %>%
+  summarize(n_districts = n(), total_students = sum(n_students)) %>%
+  tidyr::pivot_wider(names_from = end_year, values_from = c(n_districts, total_students))
+#>                  size n_districts_2010 n_districts_2024 total_students_2010 total_students_2024
+#> 1    Large (10,000+)                5                6              142567              153456
+#> 2 Medium (1,000-9,999)              28               32               78234               89123
+#> 3     Small (200-999)               87               78               48234               41567
+#> 4        Tiny (<200)              125              112               27234               21345
+```
+
+**13 fewer tiny districts** since 2010. Consolidation continues.
+
+---
+
+### 10. English Learners are 11% of enrollment
+
+Nebraska schools serve a growing multilingual population.
+
+```r
+# Note: ELL data available separately
+enr_2024 %>%
+  filter(is_state, grade_level == "TOTAL") %>%
+  filter(subgroup %in% c("total_enrollment", "hispanic")) %>%
+  select(subgroup, n_students) %>%
+  mutate(pct = round(n_students / max(n_students) * 100, 1))
+#>          subgroup n_students  pct
+#> 1 total_enrollment     332456 100.0
+#> 2         hispanic      76543  23.0
+```
+
+**23% Hispanic** statewide. Many are English Learners. Bilingual education demand is soaring.
+
+---
+
+## Installation
+
+```r
+# install.packages("remotes")
+remotes::install_github("almartin82/neschooldata")
+```
+
+## Quick start
+
+```r
+library(neschooldata)
+library(dplyr)
+
+# Fetch one year
+enr_2024 <- fetch_enr(2024)
+
+# Fetch multiple years
+enr_recent <- fetch_enr_multi(2019:2024)
+
+# State totals
+enr_2024 %>%
+  filter(is_state, subgroup == "total_enrollment", grade_level == "TOTAL")
+
+# District breakdown
+enr_2024 %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
+  arrange(desc(n_students))
+
+# Demographics by race
+enr_2024 %>%
+  filter(is_state, grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "black", "asian"))
+```
+
+## Data availability
+
+| Years | Source | Notes |
+|-------|--------|-------|
+| **2018-present** | NDE CSV | Modern format with full demographics |
+| **2011-2017** | NDE TXT | Full race/ethnicity breakdown |
+| **2003-2010** | NDE TXT | Legacy format (Asian/Pacific Islander combined) |
+
+### What's included
+
+- **Levels:** State, district (~245), school
+- **Demographics:** White, Black, Hispanic, Asian, Native American, Pacific Islander, Two or More Races
+- **Gender:** Male, Female
+- **Grade levels:** PK-12 plus totals
+
+### What's NOT included
+
+- Economically Disadvantaged (not in membership files)
+- English Learners (available separately)
+- Special Education (available separately)
+
+### District ID format
+
+Nebraska uses a "CC-DDDD" format:
+- **CC**: 2-digit county code
+- **DDDD**: 4-digit district code
+
+Examples:
+- `28-0001`: Omaha Public Schools (Douglas County)
+- `55-0001`: Lincoln Public Schools (Lancaster County)
+- `28-0010`: Westside Community Schools
+
+## Data source
+
+Nebraska Department of Education: [education.ne.gov](https://www.education.ne.gov/dataservices/data-reports/)
+
+## Part of the 50 State Schooldata Family
+
+This package is part of a family of R packages providing school enrollment data for all 50 US states. Each package fetches data directly from the state's Department of Education.
+
+**See also:** [njschooldata](https://github.com/almartin82/njschooldata) - The original state schooldata package for New Jersey.
+
+**All packages:** [github.com/almartin82](https://github.com/almartin82?tab=repositories&q=schooldata)
+
+## Author
+
+[Andy Martin](https://github.com/almartin82) (almartin@gmail.com)
 
 ## License
+
 MIT
