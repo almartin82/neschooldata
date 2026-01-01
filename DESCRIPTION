@@ -1,12 +1,10 @@
 Package: sdschooldata
-Title: Fetch and Process South Dakota School Data
+Title: South Dakota School Data
 Version: 0.1.0
 Authors@R:
     person("Al", "Martin", , "almartin@example.com", role = c("aut", "cre"))
-Description: Downloads and processes school data from the South Dakota Department
-    of Education (SD DOE). Provides functions for fetching enrollment data from
-    Fall Census counts and transforming it into tidy format for analysis.
-    Supports historical data from 2006 to present.
+Description: A simple, consistent interface for accessing South Dakota
+    school data in R.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
