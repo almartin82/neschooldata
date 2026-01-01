@@ -2,12 +2,13 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/almartin82/neschooldata/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/almartin82/neschooldata/actions/workflows/R-CMD-check.yaml)
+[![Python Tests](https://github.com/almartin82/neschooldata/actions/workflows/python-test.yaml/badge.svg)](https://github.com/almartin82/neschooldata/actions/workflows/python-test.yaml)
 [![pkgdown](https://github.com/almartin82/neschooldata/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/almartin82/neschooldata/actions/workflows/pkgdown.yaml)
 <!-- badges: end -->
 
 **[Documentation](https://almartin82.github.io/neschooldata/)** | **[Getting Started](https://almartin82.github.io/neschooldata/articles/quickstart.html)**
 
-Fetch and analyze Nebraska public school enrollment data from the Nebraska Department of Education.
+Fetch and analyze Nebraska school enrollment data from the Nebraska Department of Education in R or Python.
 
 ## What can you find with neschooldata?
 
@@ -271,6 +272,8 @@ remotes::install_github("almartin82/neschooldata")
 
 ## Quick start
 
+### R
+
 ```r
 library(neschooldata)
 library(dplyr)
@@ -294,6 +297,28 @@ enr_2024 %>%
 enr_2024 %>%
   filter(is_state, grade_level == "TOTAL",
          subgroup %in% c("white", "hispanic", "black", "asian"))
+```
+
+### Python
+
+```python
+import pyneschooldata as ne
+
+# Fetch 2024 data (2023-24 school year)
+enr = ne.fetch_enr(2024)
+
+# Statewide total
+total = enr[enr['is_state'] & (enr['grade_level'] == 'TOTAL') & (enr['subgroup'] == 'total_enrollment')]['n_students'].sum()
+print(f"{total:,} students")
+#> 330,000 students
+
+# Get multiple years
+enr_multi = ne.fetch_enr_multi([2020, 2021, 2022, 2023, 2024])
+
+# Check available years
+years = ne.get_available_years()
+print(f"Data available: {years['min_year']}-{years['max_year']}")
+#> Data available: 2003-2026
 ```
 
 ## Data availability
