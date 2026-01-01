@@ -272,8 +272,8 @@ process_school_enr <- function(df, end_year) {
 
   # Create grade-level columns for each school
   # First, aggregate to school-grade level (in case of duplicates)
-  school_grade <- df_work %>%
-    dplyr::group_by(campus_id, district_id, campus_name, district_name, county, grade_level) %>%
+  school_grade <- df_work |>
+    dplyr::group_by(campus_id, district_id, campus_name, district_name, county, grade_level) |>
     dplyr::summarize(
       white = sum_or_na(white),
       black = sum_or_na(black),
@@ -290,9 +290,9 @@ process_school_enr <- function(df, end_year) {
 
   # Pivot grade counts to wide format
   # Ensure total is numeric for pivot_wider
-  grade_counts <- school_grade %>%
-    dplyr::mutate(total = as.numeric(total)) %>%
-    dplyr::select(campus_id, grade_level, total) %>%
+  grade_counts <- school_grade |>
+    dplyr::mutate(total = as.numeric(total)) |>
+    dplyr::select(campus_id, grade_level, total) |>
     tidyr::pivot_wider(
       names_from = grade_level,
       values_from = total,
@@ -301,8 +301,8 @@ process_school_enr <- function(df, end_year) {
     )
 
   # Aggregate demographics to school level (sum across grades)
-  school_totals <- school_grade %>%
-    dplyr::group_by(campus_id, district_id, campus_name, district_name, county) %>%
+  school_totals <- school_grade |>
+    dplyr::group_by(campus_id, district_id, campus_name, district_name, county) |>
     dplyr::summarize(
       row_total = sum(total, na.rm = TRUE),
       white = sum_or_na(white),
@@ -318,7 +318,7 @@ process_school_enr <- function(df, end_year) {
     )
 
   # Join grade counts
-  result <- school_totals %>%
+  result <- school_totals |>
     dplyr::left_join(grade_counts, by = "campus_id")
 
   # Add metadata
@@ -399,8 +399,8 @@ create_district_aggregate <- function(school_df, end_year) {
   sum_cols <- sum_cols[sum_cols %in% names(school_df)]
 
   # Aggregate by district
-  district_df <- school_df %>%
-    dplyr::group_by(district_id, district_name, county) %>%
+  district_df <- school_df |>
+    dplyr::group_by(district_id, district_name, county) |>
     dplyr::summarize(
       dplyr::across(dplyr::all_of(sum_cols), ~sum(.x, na.rm = TRUE)),
       .groups = "drop"
