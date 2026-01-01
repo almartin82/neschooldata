@@ -261,6 +261,18 @@ education demand is soaring.
 
 ------------------------------------------------------------------------
 
+## Enrollment Visualizations
+
+![Nebraska statewide enrollment
+trends](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/statewide-chart-1.png)
+
+![Top Nebraska
+districts](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/top-districts-chart-1.png)
+
+See the [full
+vignette](https://almartin82.github.io/neschooldata/articles/enrollment_hooks.html)
+for more insights.
+
 ## Installation
 
 ``` r
