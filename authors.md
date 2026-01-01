@@ -9,11 +9,11 @@
 Source:
 [`DESCRIPTION`](https://github.com/almartin82/neschooldata/blob/main/DESCRIPTION)
 
-Martin A (2026). *neschooldata: Fetch and Process Nebraska School Data*.
-R package version 0.1.0, <https://almartin82.github.io/neschooldata>.
+Martin A (2026). *neschooldata: Nebraska School Data*. R package version
+0.1.0, <https://almartin82.github.io/neschooldata>.
 
     @Manual{,
-      title = {neschooldata: Fetch and Process Nebraska School Data},
+      title = {neschooldata: Nebraska School Data},
       author = {Al Martin},
       year = {2026},
       note = {R package version 0.1.0},
