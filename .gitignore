@@ -6,9 +6,6 @@
 
 # Package documentation
 docs/
-inst/doc/
-doc/
-Meta/
 
 # OS files
 .DS_Store
