@@ -31,10 +31,10 @@ years = ne.get_available_years()
 print(f"Data available from {years['min_year']} to {years['max_year']}")
 
 # Fetch one year
-df = ne.fetch_enr(2025)
+df = ne.fetch_enr(2024)
 
 # Fetch multiple years
-df_multi = ne.fetch_enr_multi([2020, 2021, 2022, 2023, 2024, 2025])
+df_multi = ne.fetch_enr_multi([2020, 2021, 2022, 2023, 2024])
 
 # Convert to tidy format
 tidy = ne.tidy_enr(df)
