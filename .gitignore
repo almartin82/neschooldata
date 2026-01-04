@@ -25,3 +25,5 @@ tests/testthat/_snaps/
 
 # Cache
 *.rds
+/doc/
+/Meta/
