@@ -2,9 +2,9 @@
 
 Returns a vector of school year ends for which enrollment data is
 available. Nebraska provides historical enrollment data from 2002-03
-through present:
+through 2023-24:
 
-- 2018-present: CSV files (MembershipByGradeRaceAndGender)
+- 2018-2024: CSV files (MembershipByGradeRaceAndGender)
 
 - 2011-2017: TXT files with current column format
 
@@ -19,7 +19,7 @@ get_available_years()
 
 ## Value
 
-Integer vector of available school year ends
+Integer vector of available school year ends (2003-2024)
 
 ## Details
 

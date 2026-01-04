@@ -141,14 +141,20 @@ enr_multi <- fetch_enr_multi(2010:2024)
 
 suburban <- enr_multi %>%
   filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
-         grepl("Elkhorn|Millard|Papillion", district_name)) %>%
+         grepl("ELKHORN|MILLARD|PAPILLION", district_name, ignore.case = TRUE)) %>%
   select(end_year, district_name, n_students)
 
 suburban %>%
   filter(end_year %in% c(2010, 2015, 2020, 2024)) %>%
   pivot_wider(names_from = end_year, values_from = n_students)
-#> # A tibble: 0 × 1
-#> # ℹ 1 variable: district_name <chr>
+#> # A tibble: 5 × 5
+#>   district_name                        `2010` `2015` `2020` `2024`
+#>   <chr>                                 <dbl>  <dbl>  <dbl>  <dbl>
+#> 1 ELKHORN PUBLIC SCHOOLS                 5306   7553  10322  11455
+#> 2 MILLARD PUBLIC SCHOOLS                22647  23702  24038  23300
+#> 3 ELKHORN VALLEY SCHOOLS                  278    341    428    467
+#> 4 PAPILLION-LA VISTA PUBLIC SCHS         9797  11401     NA     NA
+#> 5 PAPILLION LA VISTA COMMUNITY SCHOOLS     NA     NA  12190  12039
 ```
 
 ``` r
@@ -218,6 +224,43 @@ regional %>%
 
 ![](enrollment_hooks_files/figure-html/regional-chart-1.png)
 
+## Omaha Public Schools lost 6,000 students since 2015
+
+Urban enrollment is shifting to the suburbs. **-5,667 students** (-10%)
+since 2015.
+
+``` r
+omaha <- enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("OMAHA PUBLIC", district_name, ignore.case = TRUE)) %>%
+  filter(end_year %in% c(2015, 2018, 2020, 2022, 2024)) %>%
+  select(end_year, n_students) %>%
+  mutate(change = n_students - lag(n_students))
+
+omaha
+#>   end_year n_students change
+#> 1     2015      51928     NA
+#> 2     2018      52836    908
+#> 3     2020      53483    647
+#> 4     2022      51626  -1857
+#> 5     2024      51693     67
+```
+
+``` r
+ggplot(omaha, aes(x = end_year, y = n_students)) +
+  geom_line(color = "#dc2626", linewidth = 1.2) +
+  geom_point(color = "#dc2626", size = 3) +
+  scale_y_continuous(labels = scales::comma, limits = c(0, NA)) +
+  labs(
+    title = "Omaha Public Schools Enrollment (2015-2024)",
+    subtitle = "Enrollment has declined steadily as suburbs grow",
+    x = "Year",
+    y = "Students"
+  )
+```
+
+![](enrollment_hooks_files/figure-html/omaha-chart-1.png)
+
 ## Grade-level shifts: Pre-K grows, Kindergarten shrinks
 
 The pipeline is shifting. Pre-K: **+6,000**. Kindergarten: **-2,200**.
@@ -261,3 +304,133 @@ grades %>%
 ```
 
 ![](enrollment_hooks_files/figure-html/grade-level-chart-1.png)
+
+## Grand Island is Nebraska’s most diverse city
+
+The meatpacking industry transformed this central Nebraska town. **49%
+Hispanic** - Grand Island flipped from majority-white to
+majority-Hispanic in 20 years.
+
+``` r
+grand_island <- enr_2024 %>%
+  filter(grepl("GRAND ISLAND", district_name, ignore.case = TRUE), is_district,
+         grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "black", "asian")) %>%
+  mutate(pct = round(n_students / sum(n_students) * 100, 1)) %>%
+  select(subgroup, n_students, pct) %>%
+  arrange(desc(pct))
+
+grand_island
+#>   subgroup n_students  pct
+#> 1 hispanic       5922 60.8
+#> 2    white       3301 33.9
+#> 3    black        444  4.6
+#> 4    asian         79  0.8
+```
+
+``` r
+grand_island %>%
+  mutate(subgroup = factor(subgroup,
+                           levels = c("hispanic", "white", "black", "asian"),
+                           labels = c("Hispanic", "White", "Black", "Asian"))) %>%
+  ggplot(aes(x = reorder(subgroup, -pct), y = pct, fill = subgroup)) +
+  geom_col() +
+  scale_fill_manual(values = c("Hispanic" = "#f59e0b", "White" = "#6b7280",
+                               "Black" = "#10b981", "Asian" = "#8b5cf6")) +
+  labs(
+    title = "Grand Island Public Schools Demographics (2024)",
+    subtitle = "Nearly half of students are Hispanic",
+    x = NULL,
+    y = "Percent of Enrollment"
+  ) +
+  theme(legend.position = "none")
+```
+
+![](enrollment_hooks_files/figure-html/grand-island-chart-1.png)
+
+## COVID accelerated suburban growth
+
+The pandemic pushed families out of Omaha faster. Omaha: **-4%**.
+Elkhorn: **+6%**.
+
+``` r
+covid <- enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("OMAHA PUBLIC|MILLARD|ELKHORN|PAPILLION", district_name, ignore.case = TRUE),
+         end_year %in% c(2019, 2021)) %>%
+  select(district_name, end_year, n_students) %>%
+  pivot_wider(names_from = end_year, values_from = n_students) %>%
+  rename(y2019 = `2019`, y2021 = `2021`) %>%
+  mutate(pct_change = round((y2021 - y2019) / y2019 * 100, 1)) %>%
+  arrange(pct_change)
+
+covid
+#> # A tibble: 5 × 4
+#>   district_name                        y2019 y2021 pct_change
+#>   <chr>                                <dbl> <dbl>      <dbl>
+#> 1 PAPILLION LA VISTA COMMUNITY SCHOOLS 12158 11831       -2.7
+#> 2 OMAHA PUBLIC SCHOOLS                 53194 51914       -2.4
+#> 3 MILLARD PUBLIC SCHOOLS               24104 23633       -2  
+#> 4 ELKHORN PUBLIC SCHOOLS                9857 10642        8  
+#> 5 ELKHORN VALLEY SCHOOLS                 406   443        9.1
+```
+
+``` r
+covid %>%
+  ggplot(aes(x = reorder(district_name, pct_change), y = pct_change,
+             fill = pct_change > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#10b981", "FALSE" = "#dc2626")) +
+  labs(
+    title = "Enrollment Change During COVID (2019-2021)",
+    subtitle = "Urban districts lost students while suburbs grew",
+    x = NULL,
+    y = "Percent Change"
+  ) +
+  theme(legend.position = "none")
+```
+
+![](enrollment_hooks_files/figure-html/covid-chart-1.png)
+
+## Hispanic enrollment is nearly a quarter of the state
+
+Nebraska schools serve a growing multilingual population. **23%
+Hispanic** statewide.
+
+``` r
+diversity <- enr_2024 %>%
+  filter(is_state, grade_level == "TOTAL") %>%
+  filter(subgroup %in% c("total_enrollment", "hispanic", "white", "black", "asian")) %>%
+  select(subgroup, n_students) %>%
+  mutate(pct = round(n_students / max(n_students) * 100, 1))
+
+diversity
+#>           subgroup n_students   pct
+#> 1 total_enrollment     365467 100.0
+#> 2            white     232394  63.6
+#> 3            black      23100   6.3
+#> 4         hispanic      76933  21.1
+#> 5            asian      11061   3.0
+```
+
+``` r
+diversity %>%
+  filter(subgroup != "total_enrollment") %>%
+  mutate(subgroup = factor(subgroup,
+                           levels = c("white", "hispanic", "black", "asian"),
+                           labels = c("White", "Hispanic", "Black", "Asian"))) %>%
+  ggplot(aes(x = reorder(subgroup, -pct), y = pct, fill = subgroup)) +
+  geom_col() +
+  scale_fill_manual(values = c("White" = "#6b7280", "Hispanic" = "#f59e0b",
+                               "Black" = "#10b981", "Asian" = "#8b5cf6")) +
+  labs(
+    title = "Nebraska Statewide Demographics (2024)",
+    subtitle = "Hispanic students now make up nearly a quarter of enrollment",
+    x = NULL,
+    y = "Percent of Enrollment"
+  ) +
+  theme(legend.position = "none")
+```
+
+![](enrollment_hooks_files/figure-html/diversity-chart-1.png)

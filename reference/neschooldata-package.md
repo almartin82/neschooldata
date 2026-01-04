@@ -96,6 +96,8 @@ Data is sourced from Nebraska Department of Education's public reports:
 
 Useful links:
 
+- <https://almartin82.github.io/neschooldata>
+
 - <https://github.com/almartin82/neschooldata>
 
 - Report bugs at <https://github.com/almartin82/neschooldata/issues>
