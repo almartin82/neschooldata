@@ -7,13 +7,13 @@
 get_available_years()
 }
 \value{
-Integer vector of available school year ends
+Integer vector of available school year ends (2003-2024)
 }
 \description{
 Returns a vector of school year ends for which enrollment data is available.
-Nebraska provides historical enrollment data from 2002-03 through present:
+Nebraska provides historical enrollment data from 2002-03 through 2023-24:
 \itemize{
-\item 2018-present: CSV files (MembershipByGradeRaceAndGender)
+\item 2018-2024: CSV files (MembershipByGradeRaceAndGender)
 \item 2011-2017: TXT files with current column format
 \item 2003-2010: TXT files with legacy column format (pre-2010 race categories)
 }

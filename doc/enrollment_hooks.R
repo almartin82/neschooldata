@@ -93,7 +93,7 @@ enr_multi <- fetch_enr_multi(2010:2024)
 
 suburban <- enr_multi %>%
   filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
-         grepl("Elkhorn|Millard|Papillion", district_name)) %>%
+         grepl("ELKHORN|MILLARD|PAPILLION", district_name, ignore.case = TRUE)) %>%
   select(end_year, district_name, n_students)
 
 suburban %>%
@@ -147,6 +147,28 @@ regional %>%
   ) +
   theme(axis.text.x = element_text(angle = 15, hjust = 1))
 
+## ----omaha-data---------------------------------------------------------------
+omaha <- enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("OMAHA PUBLIC", district_name, ignore.case = TRUE)) %>%
+  filter(end_year %in% c(2015, 2018, 2020, 2022, 2024)) %>%
+  select(end_year, n_students) %>%
+  mutate(change = n_students - lag(n_students))
+
+omaha
+
+## ----omaha-chart--------------------------------------------------------------
+ggplot(omaha, aes(x = end_year, y = n_students)) +
+  geom_line(color = "#dc2626", linewidth = 1.2) +
+  geom_point(color = "#dc2626", size = 3) +
+  scale_y_continuous(labels = scales::comma, limits = c(0, NA)) +
+  labs(
+    title = "Omaha Public Schools Enrollment (2015-2024)",
+    subtitle = "Enrollment has declined steadily as suburbs grow",
+    x = "Year",
+    y = "Students"
+  )
+
 ## ----grade-level-data---------------------------------------------------------
 grades <- enr_multi %>%
   filter(is_state, subgroup == "total_enrollment",
@@ -174,4 +196,87 @@ grades %>%
     y = "Students",
     fill = "Year"
   )
+
+## ----grand-island-data--------------------------------------------------------
+grand_island <- enr_2024 %>%
+  filter(grepl("GRAND ISLAND", district_name, ignore.case = TRUE), is_district,
+         grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "black", "asian")) %>%
+  mutate(pct = round(n_students / sum(n_students) * 100, 1)) %>%
+  select(subgroup, n_students, pct) %>%
+  arrange(desc(pct))
+
+grand_island
+
+## ----grand-island-chart-------------------------------------------------------
+grand_island %>%
+  mutate(subgroup = factor(subgroup,
+                           levels = c("hispanic", "white", "black", "asian"),
+                           labels = c("Hispanic", "White", "Black", "Asian"))) %>%
+  ggplot(aes(x = reorder(subgroup, -pct), y = pct, fill = subgroup)) +
+  geom_col() +
+  scale_fill_manual(values = c("Hispanic" = "#f59e0b", "White" = "#6b7280",
+                               "Black" = "#10b981", "Asian" = "#8b5cf6")) +
+  labs(
+    title = "Grand Island Public Schools Demographics (2024)",
+    subtitle = "Nearly half of students are Hispanic",
+    x = NULL,
+    y = "Percent of Enrollment"
+  ) +
+  theme(legend.position = "none")
+
+## ----covid-data---------------------------------------------------------------
+covid <- enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("OMAHA PUBLIC|MILLARD|ELKHORN|PAPILLION", district_name, ignore.case = TRUE),
+         end_year %in% c(2019, 2021)) %>%
+  select(district_name, end_year, n_students) %>%
+  pivot_wider(names_from = end_year, values_from = n_students) %>%
+  rename(y2019 = `2019`, y2021 = `2021`) %>%
+  mutate(pct_change = round((y2021 - y2019) / y2019 * 100, 1)) %>%
+  arrange(pct_change)
+
+covid
+
+## ----covid-chart--------------------------------------------------------------
+covid %>%
+  ggplot(aes(x = reorder(district_name, pct_change), y = pct_change,
+             fill = pct_change > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#10b981", "FALSE" = "#dc2626")) +
+  labs(
+    title = "Enrollment Change During COVID (2019-2021)",
+    subtitle = "Urban districts lost students while suburbs grew",
+    x = NULL,
+    y = "Percent Change"
+  ) +
+  theme(legend.position = "none")
+
+## ----diversity-data-----------------------------------------------------------
+diversity <- enr_2024 %>%
+  filter(is_state, grade_level == "TOTAL") %>%
+  filter(subgroup %in% c("total_enrollment", "hispanic", "white", "black", "asian")) %>%
+  select(subgroup, n_students) %>%
+  mutate(pct = round(n_students / max(n_students) * 100, 1))
+
+diversity
+
+## ----diversity-chart----------------------------------------------------------
+diversity %>%
+  filter(subgroup != "total_enrollment") %>%
+  mutate(subgroup = factor(subgroup,
+                           levels = c("white", "hispanic", "black", "asian"),
+                           labels = c("White", "Hispanic", "Black", "Asian"))) %>%
+  ggplot(aes(x = reorder(subgroup, -pct), y = pct, fill = subgroup)) +
+  geom_col() +
+  scale_fill_manual(values = c("White" = "#6b7280", "Hispanic" = "#f59e0b",
+                               "Black" = "#10b981", "Asian" = "#8b5cf6")) +
+  labs(
+    title = "Nebraska Statewide Demographics (2024)",
+    subtitle = "Hispanic students now make up nearly a quarter of enrollment",
+    x = NULL,
+    y = "Percent of Enrollment"
+  ) +
+  theme(legend.position = "none")
 

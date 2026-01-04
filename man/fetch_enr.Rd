@@ -40,7 +40,7 @@ enr_wide <- fetch_enr(2024, tidy = FALSE)
 enr_fresh <- fetch_enr(2024, use_cache = FALSE)
 
 # Filter to specific district
-lincoln_ps <- enr_2024 \%>\%
+lincoln_ps <- enr_2024 |>
   dplyr::filter(district_id == "55-0001")
 
 # Get historical data (note: limited demographics for pre-2011)
