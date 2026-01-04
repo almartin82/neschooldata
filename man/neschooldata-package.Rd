@@ -81,6 +81,7 @@ Data is sourced from Nebraska Department of Education's public reports:
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://almartin82.github.io/neschooldata}
   \item \url{https://github.com/almartin82/neschooldata}
   \item Report bugs at \url{https://github.com/almartin82/neschooldata/issues}
 }
