@@ -69,3 +69,4 @@ devtools::test(filter = "pipeline-live")
 ```
 
 See `state-schooldata/CLAUDE.md` for complete testing framework documentation.
+
