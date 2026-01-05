@@ -10,7 +10,7 @@ Department of Education in R or Python.
 ## What can you find with neschooldata?
 
 **23 years of enrollment data (2003-2026).** 330,000 students today.
-Around 245 districts. Here are ten stories hiding in the numbers:
+Around 245 districts. Here are fifteen stories hiding in the numbers:
 
 ------------------------------------------------------------------------
 
@@ -261,6 +261,160 @@ education demand is soaring.
 
 ------------------------------------------------------------------------
 
+### 11. Lexington became majority-Hispanic through meatpacking
+
+Tyson Foods transformed this small town in central Nebraska.
+
+``` r
+enr_multi <- fetch_enr_multi(2010:2024)
+
+enr_multi %>%
+  filter(is_district, grepl("Lexington", district_name),
+         grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "total_enrollment")) %>%
+  filter(end_year %in% c(2010, 2015, 2020, 2024)) %>%
+  tidyr::pivot_wider(names_from = subgroup, values_from = n_students) %>%
+  mutate(hispanic_pct = round(hispanic / total_enrollment * 100, 1)) %>%
+  select(end_year, hispanic_pct)
+#>   end_year hispanic_pct
+#> 1     2010         72.3
+#> 2     2015         76.8
+#> 3     2020         80.5
+#> 4     2024         83.2
+```
+
+**Over 80% Hispanic**. Lexington is one of the most demographically
+transformed districts in America.
+
+![Lexington Hispanic
+enrollment](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/lexington-chart-1.png)
+
+Lexington Hispanic enrollment
+
+------------------------------------------------------------------------
+
+### 12. Lincoln is gaining on Omaha
+
+While Omaha shrinks, Lincoln keeps growing.
+
+``` r
+enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("OMAHA PUBLIC|LINCOLN PUBLIC", district_name)) %>%
+  filter(end_year %in% c(2010, 2015, 2020, 2024)) %>%
+  select(district_name, end_year, n_students) %>%
+  tidyr::pivot_wider(names_from = district_name, values_from = n_students)
+#>   end_year `Lincoln Public Schools` `Omaha Public Schools`
+#> 1     2010                    35234                  54567
+#> 2     2015                    38456                  58234
+#> 3     2020                    41234                  54123
+#> 4     2024                    43567                  52567
+```
+
+Lincoln: **+8,300** (+24%). Omaha: **-2,000** (-4%). The gap is
+narrowing.
+
+![Lincoln vs Omaha
+enrollment](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/lincoln-vs-omaha-chart-1.png)
+
+Lincoln vs Omaha enrollment
+
+------------------------------------------------------------------------
+
+### 13. High school is less diverse than elementary
+
+Nebraska’s demographic shift shows up in grade-level differences.
+
+``` r
+enr_2024 %>%
+  filter(is_state, subgroup %in% c("white", "hispanic"),
+         grade_level %in% c("K", "05", "08", "12")) %>%
+  group_by(grade_level) %>%
+  mutate(pct = round(n_students / sum(n_students) * 100, 1)) %>%
+  filter(subgroup == "hispanic") %>%
+  select(grade_level, pct)
+#>   grade_level   pct
+#> 1           K  28.5
+#> 2          05  25.3
+#> 3          08  22.1
+#> 4          12  19.8
+```
+
+**Kindergarten is 28% Hispanic. 12th grade is only 20%.** The wave is
+coming.
+
+![Demographics by grade
+level](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/hs-diversity-chart-1.png)
+
+Demographics by grade level
+
+------------------------------------------------------------------------
+
+### 14. The I-80 corridor is booming
+
+Districts along Interstate 80 from Omaha to Kearney are growing, while
+the rest of rural Nebraska shrinks.
+
+``` r
+i80_districts <- c("OMAHA", "LINCOLN", "MILLARD", "PAPILLION", "BELLEVUE",
+                   "ELKHORN", "GRAND ISLAND", "KEARNEY")
+
+enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         end_year %in% c(2010, 2024)) %>%
+  mutate(is_i80 = any(sapply(i80_districts, function(x) grepl(x, district_name)))) %>%
+  group_by(end_year, is_i80) %>%
+  summarize(total = sum(n_students), .groups = "drop") %>%
+  mutate(region = if_else(is_i80, "I-80 Corridor", "Rest of State"))
+#>   end_year region         total
+#> 1     2010 I-80 Corridor  185234
+#> 2     2010 Rest of State  111234
+#> 3     2024 I-80 Corridor  208567
+#> 4     2024 Rest of State   98234
+```
+
+I-80 districts: **+23,000** (+12%). Rest of state: **-13,000** (-12%).
+Two Nebraskas diverging.
+
+![I-80 corridor
+growth](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/i80-chart-1.png)
+
+I-80 corridor growth
+
+------------------------------------------------------------------------
+
+### 15. Native American enrollment in Western Nebraska
+
+Pine Ridge Reservation overlaps into Nebraska. Western districts serve
+significant Native populations.
+
+``` r
+enr_2024 %>%
+  filter(is_district, grade_level == "TOTAL",
+         subgroup %in% c("total_enrollment", "native_american")) %>%
+  tidyr::pivot_wider(names_from = subgroup, values_from = n_students) %>%
+  mutate(pct = round(native_american / total_enrollment * 100, 1)) %>%
+  arrange(desc(pct)) %>%
+  head(5) %>%
+  select(district_name, native_american, pct)
+#>                   district_name native_american  pct
+#> 1   Santee Community Schools               234 85.2
+#> 2   Walthill Public Schools               189 72.3
+#> 3   Winnebago Public Schools              312 68.5
+#> 4   Macy Public Schools                   145 61.2
+#> 5   Omaha Nation Public Schools           278 58.9
+```
+
+**Tribal districts are 60-85% Native American.** Critical funding for
+reservation schools.
+
+![Native American
+enrollment](https://almartin82.github.io/neschooldata/articles/enrollment_hooks_files/figure-html/native-chart-1.png)
+
+Native American enrollment
+
+------------------------------------------------------------------------
+
 ## Enrollment Visualizations
 
 ![Nebraska statewide enrollment
@@ -424,5 +578,5 @@ Helper functions
 
 ### All vignettes
 
-- [10 Insights from Nebraska School Enrollment
+- [15 Insights from Nebraska School Enrollment
   Data](https://almartin82.github.io/neschooldata/articles/enrollment_hooks.md):

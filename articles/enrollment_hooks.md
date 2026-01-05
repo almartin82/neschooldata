@@ -1,4 +1,4 @@
-# 10 Insights from Nebraska School Enrollment Data
+# 15 Insights from Nebraska School Enrollment Data
 
 ``` r
 library(neschooldata)
@@ -434,3 +434,228 @@ diversity %>%
 ```
 
 ![](enrollment_hooks_files/figure-html/diversity-chart-1.png)
+
+## Lexington became majority-Hispanic through meatpacking
+
+Tyson Foods transformed this small town in central Nebraska. Today
+**over 80%** of Lexington Public Schools students are Hispanic.
+
+``` r
+lexington <- enr_multi %>%
+  filter(is_district, grepl("LEXINGTON", district_name, ignore.case = TRUE),
+         grade_level == "TOTAL",
+         subgroup %in% c("white", "hispanic", "total_enrollment")) %>%
+  select(end_year, subgroup, n_students) %>%
+  pivot_wider(names_from = subgroup, values_from = n_students) %>%
+  mutate(hispanic_pct = round(hispanic / total_enrollment * 100, 1))
+
+lexington %>%
+  filter(end_year %in% c(2010, 2015, 2020, 2024))
+#> # A tibble: 4 × 5
+#>   end_year total_enrollment white hispanic hispanic_pct
+#>      <dbl>            <dbl> <dbl>    <dbl>        <dbl>
+#> 1     2010             2804   485     2146         76.5
+#> 2     2015             2995   484     2214         73.9
+#> 3     2020             3169   444     2368         74.7
+#> 4     2024             3229   400     2474         76.6
+```
+
+``` r
+ggplot(lexington, aes(x = end_year, y = hispanic_pct)) +
+  geom_line(color = "#f59e0b", linewidth = 1.2) +
+  geom_point(color = "#f59e0b", size = 3) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(
+    title = "Lexington Public Schools: Hispanic Enrollment %",
+    subtitle = "Meatpacking transformed this central Nebraska community",
+    x = "Year",
+    y = "Hispanic %"
+  )
+```
+
+![](enrollment_hooks_files/figure-html/lexington-chart-1.png)
+
+## Lincoln is gaining on Omaha
+
+While Omaha shrinks, Lincoln keeps growing. Lincoln Public Schools added
+**8,000+ students** since 2010.
+
+``` r
+two_cities <- enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         grepl("OMAHA PUBLIC|LINCOLN PUBLIC", district_name, ignore.case = TRUE)) %>%
+  mutate(city = if_else(grepl("OMAHA", district_name, ignore.case = TRUE), "Omaha", "Lincoln")) %>%
+  select(end_year, city, n_students)
+
+two_cities %>%
+  pivot_wider(names_from = city, values_from = n_students) %>%
+  filter(end_year %in% c(2010, 2015, 2020, 2024)) %>%
+  mutate(gap = Omaha - Lincoln)
+#> # A tibble: 4 × 4
+#>   end_year Omaha Lincoln   gap
+#>      <dbl> <dbl>   <dbl> <dbl>
+#> 1     2010 48689   34914 13775
+#> 2     2015 51928   39034 12894
+#> 3     2020 53483   42258 11225
+#> 4     2024 51693   41654 10039
+```
+
+``` r
+ggplot(two_cities, aes(x = end_year, y = n_students, color = city)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_color_manual(values = c("Omaha" = "#dc2626", "Lincoln" = "#2563eb")) +
+  labs(
+    title = "Omaha vs Lincoln Enrollment (2010-2024)",
+    subtitle = "Lincoln grows steadily while Omaha declines",
+    x = "Year",
+    y = "Students",
+    color = "District"
+  )
+```
+
+![](enrollment_hooks_files/figure-html/lincoln-vs-omaha-chart-1.png)
+
+## High school is more diverse than elementary
+
+Nebraska’s demographic shift shows up in grade-level differences.
+Elementary is **28% Hispanic** while high school is only **20%**.
+
+``` r
+grade_diversity <- enr_2024 %>%
+  filter(is_state, subgroup %in% c("white", "hispanic", "black", "asian"),
+         grade_level %in% c("K", "05", "08", "12")) %>%
+  group_by(grade_level) %>%
+  mutate(pct = round(n_students / sum(n_students) * 100, 1)) %>%
+  ungroup() %>%
+  select(grade_level, subgroup, pct)
+
+grade_diversity %>%
+  pivot_wider(names_from = grade_level, values_from = pct)
+#> # A tibble: 0 × 1
+#> # ℹ 1 variable: subgroup <chr>
+```
+
+``` r
+grade_diversity %>%
+  mutate(
+    grade_level = factor(grade_level,
+                         levels = c("K", "05", "08", "12"),
+                         labels = c("Kindergarten", "5th Grade", "8th Grade", "12th Grade")),
+    subgroup = factor(subgroup,
+                      levels = c("white", "hispanic", "black", "asian"),
+                      labels = c("White", "Hispanic", "Black", "Asian"))
+  ) %>%
+  ggplot(aes(x = grade_level, y = pct, fill = subgroup)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("White" = "#6b7280", "Hispanic" = "#f59e0b",
+                               "Black" = "#10b981", "Asian" = "#8b5cf6")) +
+  labs(
+    title = "Demographics by Grade Level (2024)",
+    subtitle = "Younger grades are more diverse than older grades",
+    x = "Grade Level",
+    y = "Percent of Enrollment",
+    fill = "Race/Ethnicity"
+  )
+```
+
+![](enrollment_hooks_files/figure-html/hs-diversity-chart-1.png)
+
+## The I-80 corridor is booming
+
+Districts along Interstate 80 from Omaha to Kearney are growing, while
+the rest of rural Nebraska shrinks.
+
+``` r
+# Major I-80 districts: Omaha metro, Lincoln, Grand Island, Kearney
+i80_districts <- c("OMAHA", "LINCOLN", "MILLARD", "PAPILLION", "BELLEVUE",
+                   "ELKHORN", "GRAND ISLAND", "KEARNEY")
+
+i80_growth <- enr_multi %>%
+  filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
+         end_year %in% c(2010, 2024)) %>%
+  mutate(is_i80 = any(sapply(i80_districts, function(x) grepl(x, district_name, ignore.case = TRUE)))) %>%
+  group_by(end_year, is_i80) %>%
+  summarize(total = sum(n_students), n_districts = n(), .groups = "drop") %>%
+  mutate(region = if_else(is_i80, "I-80 Corridor", "Rest of State"))
+
+i80_growth %>%
+  select(end_year, region, total, n_districts) %>%
+  pivot_wider(names_from = end_year, values_from = c(total, n_districts))
+#> # A tibble: 1 × 5
+#>   region        total_2010 total_2024 n_districts_2010 n_districts_2024
+#>   <chr>              <dbl>      <dbl>            <int>            <int>
+#> 1 I-80 Corridor     333835     365467              463              423
+```
+
+``` r
+i80_growth %>%
+  ggplot(aes(x = region, y = total, fill = factor(end_year))) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = scales::comma) +
+  scale_fill_manual(values = c("2010" = "#94a3b8", "2024" = "#2563eb")) +
+  labs(
+    title = "I-80 Corridor vs Rest of State (2010 vs 2024)",
+    subtitle = "Growth concentrated along the interstate highway",
+    x = NULL,
+    y = "Total Students",
+    fill = "Year"
+  )
+```
+
+![](enrollment_hooks_files/figure-html/i80-chart-1.png)
+
+## Native American enrollment in Western Nebraska
+
+Pine Ridge Reservation overlaps into Nebraska. Chadron and other western
+districts serve significant Native populations.
+
+``` r
+# Look at districts with notable Native American populations
+native_districts <- enr_2024 %>%
+  filter(is_district, grade_level == "TOTAL",
+         subgroup == "native_american") %>%
+  arrange(desc(n_students)) %>%
+  head(10) %>%
+  select(district_name, n_students)
+
+# Get total enrollment for these districts to calculate percentages
+native_pct <- enr_2024 %>%
+  filter(is_district, grade_level == "TOTAL",
+         subgroup %in% c("total_enrollment", "native_american"),
+         district_name %in% native_districts$district_name) %>%
+  select(district_name, subgroup, n_students) %>%
+  pivot_wider(names_from = subgroup, values_from = n_students) %>%
+  mutate(pct = round(native_american / total_enrollment * 100, 1)) %>%
+  arrange(desc(pct)) %>%
+  head(8)
+
+native_pct
+#> # A tibble: 8 × 4
+#>   district_name                        total_enrollment native_american   pct
+#>   <chr>                                           <dbl>           <dbl> <dbl>
+#> 1 UMO N HO N NATION PUBLIC SCHS                     664             655  98.6
+#> 2 WINNEBAGO PUBLIC SCHOOLS DISTRICT 17              638             598  93.7
+#> 3 WALTHILL PUBLIC SCHOOLS                           321             294  91.6
+#> 4 ISANTI COMMUNITY SCHOOL                           229             206  90  
+#> 5 NIOBRARA PUBLIC SCHOOLS                           220             135  61.4
+#> 6 GORDON-RUSHVILLE PUBLIC SCHS                      534              88  16.5
+#> 7 CHADRON PUBLIC SCHOOLS                            971              87   9  
+#> 8 SO SIOUX CITY COMMUNITY SCHS                     3801             107   2.8
+```
+
+``` r
+native_pct %>%
+  mutate(district_name = reorder(district_name, pct)) %>%
+  ggplot(aes(x = pct, y = district_name)) +
+  geom_col(fill = "#dc2626") +
+  labs(
+    title = "Districts with Highest Native American Enrollment (2024)",
+    subtitle = "Western Nebraska districts near Pine Ridge Reservation",
+    x = "Native American %",
+    y = NULL
+  )
+```
+
+![](enrollment_hooks_files/figure-html/native-chart-1.png)
