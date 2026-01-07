@@ -1,6 +1,8 @@
 Package: neschooldata
 Title: Nebraska School Data
 Version: 0.1.0
+Author: Al Martin [aut, cre]
+Maintainer: Al Martin <almartin@example.com>
 Authors@R:
     person("Al", "Martin", , "almartin@example.com", role = c("aut", "cre"))
 Description: A simple, consistent interface for accessing Nebraska
@@ -13,10 +15,11 @@ Depends:
     R (>= 4.1.0)
 Imports:
     dplyr,
+    readxl,
     readr,
     purrr,
-    stringr,
     tidyr,
+    tibble,
     rlang,
     httr,
     rappdirs
