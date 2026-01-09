@@ -31,7 +31,7 @@ theme_set(theme_minimal(base_size = 14))
 Bucking national trends, Nebraska keeps growing. **+47,000 students** (+17%) in 19 years.
 
 ```{r statewide-data}
-enr <- fetch_enr_multi(c(2005, 2010, 2015, 2020, 2024, use_cache = TRUE))
+enr <- fetch_enr_multi(c(2005, 2010, 2015, 2020, 2024), use_cache = TRUE)
 
 statewide <- enr %>%
   filter(is_state, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
