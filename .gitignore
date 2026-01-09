@@ -22,6 +22,7 @@ tests/testthat/_snaps/
 
 # Build artifacts
 *.Rcheck/
+..Rcheck/
 
 # Cache
 *.rds
