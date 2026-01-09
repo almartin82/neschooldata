@@ -14,7 +14,7 @@ Bucking national trends, Nebraska keeps growing. **+47,000 students**
 (+17%) in 19 years.
 
 ``` r
-enr <- fetch_enr_multi(c(2005, 2010, 2015, 2020, 2024))
+enr <- fetch_enr_multi(c(2005, 2010, 2015, 2020, 2024), use_cache = TRUE)
 
 statewide <- enr %>%
   filter(is_state, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
@@ -50,7 +50,7 @@ The two cities dominate Nebraska education. **Omaha + Lincoln: 95,000
 students** (29% of the state).
 
 ``` r
-enr_2024 <- fetch_enr(2024)
+enr_2024 <- fetch_enr(2024, use_cache = TRUE)
 
 top_districts <- enr_2024 %>%
   filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL") %>%
@@ -137,7 +137,7 @@ This Omaha suburb can’t build schools fast enough. **+96% growth** since
 2010.
 
 ``` r
-enr_multi <- fetch_enr_multi(2010:2024)
+enr_multi <- fetch_enr_multi(2010:2024, use_cache = TRUE)
 
 suburban <- enr_multi %>%
   filter(is_district, subgroup == "total_enrollment", grade_level == "TOTAL",
