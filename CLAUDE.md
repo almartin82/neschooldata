@@ -215,6 +215,62 @@ enr %>%
 
 ---
 
+## Vignette Caching (REQUIRED)
+
+All packages use knitr chunk caching to speed up vignette builds and CI.
+
+### Three-Part Caching Approach
+
+**1. Enable knitr caching in setup chunks:**
+```r
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE
+)
+```
+```
+
+**2. Use cache in fetch calls:**
+```r
+enr <- fetch_enr(2024, use_cache = TRUE)
+enr_multi <- fetch_enr_multi(2020:2024, use_cache = TRUE)
+```
+
+**3. Commit cache directories:**
+- Cache directories (`vignettes/*_cache/`) are **committed to git**
+- **DO NOT** add `*_cache/` to `.gitignore`
+- Cache provides reproducible builds and faster CI
+
+### Why Cache is Committed
+
+- **Reproducibility:** Same cache = same output across builds
+- **CI Speed:** Cache hits avoid expensive data downloads
+- **Consistency:** All developers get identical vignette results
+- **Stability:** Network issues don't break vignette builds
+
+### Cache Management
+
+Each package has `clear_cache()` and `cache_status()` functions:
+```r
+# View cached files
+cache_status()
+
+# Clear all cache
+clear_cache()
+
+# Clear specific year
+clear_cache(2024)
+```
+
+Cache is stored in two locations:
+1. **Vignette cache:** `vignettes/*_cache/` (committed to git)
+2. **Data cache:** `rappdirs::user_cache_dir()` (local only, not committed)
+
+---
+
 # sdschooldata Package
 
 This section contains South Dakota-specific instructions and information.
