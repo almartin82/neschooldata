@@ -1,0 +1,7 @@
+# KIPP Analysis - Confidential
+# This folder contains analysis that should NOT be committed to the public txschooldata repo
+# It can be committed to the private state-schooldata repo
+
+*
+!.gitignore
+!.gitkeep
