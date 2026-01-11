@@ -1,6 +1,6 @@
 # State Schooldata Packages
 
-This section contains universal instructions that apply to all 49 state schooldata packages.
+This section contains universal instructions that apply to all 50 state schooldata packages.
 
 ---
 

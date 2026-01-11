@@ -18,7 +18,6 @@
 .DS_Store
 Thumbs.db
 
-# pkgdown
-docs/
+# pkgdown output is built to docs/ but we keep docs/ in git for project documentation
 
 # Vignette outputs (kept in git for pkgdown builds)
