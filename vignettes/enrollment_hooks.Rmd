@@ -530,3 +530,9 @@ native_pct %>%
     y = NULL
   )
 ```
+
+## Session Info
+
+```{r session-info}
+sessionInfo()
+```
